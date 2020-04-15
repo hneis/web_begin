@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -13,11 +14,9 @@ import (
 )
 
 var (
-	YANDEX_OAUTH = os.Getenv("YANDEX_OAUTH")
-	header       = map[string][]string{
-		"Accept":        {"application/json"},
-		"Content-Type":  {"application/json"},
-		"Authorization": {"OAuth " + YANDEX_OAUTH},
+	header = map[string][]string{
+		"Accept":       {"application/json"},
+		"Content-Type": {"application/json"},
 	}
 )
 
@@ -29,31 +28,26 @@ type jsonResponse struct {
 
 type Download struct {
 	Destination string
+	Url         *url.URL
 	client      http.Client
 }
 
 /*
 @filename to download
 */
-func (d Download) GetFileFromYandexDisk(filename string) error {
-	url, err := url.Parse(fmt.Sprintf("https://cloud-api.yandex.net/v1/disk/resources/download?path=/%s", filename))
+func (d Download) GetFileFromYandexDisk() error {
+	jsResp, err := d.queryToDownlod(d.Url)
+	if err != nil {
+		return err
+	}
+
+	durl, err := url.Parse(jsResp.Href)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	jsResp, err := d.queryToDownlod(url)
-	if err != nil {
-		return err
-	}
-
-	url, err = url.Parse(jsResp.Href)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	err = d.download(jsResp.Method, url)
+	err = d.download(jsResp.Method, durl)
 	if err != nil {
 		return err
 	}
@@ -62,11 +56,7 @@ func (d Download) GetFileFromYandexDisk(filename string) error {
 }
 
 func (d Download) queryToDownlod(url *url.URL) (jr *jsonResponse, err error) {
-	r, err := d.client.Do(&http.Request{
-		Method: "GET",
-		URL:    url,
-		Header: header,
-	})
+	r, err := d.client.Get(url.String())
 
 	if err != nil {
 		log.Println(err)
@@ -85,12 +75,7 @@ func (d Download) queryToDownlod(url *url.URL) (jr *jsonResponse, err error) {
 }
 
 func (d Download) download(m string, url *url.URL) error {
-	r, err := d.client.Do(&http.Request{
-		Method: m,
-		URL:    url,
-		Header: header,
-	})
-
+	r, err := d.client.Get(url.String())
 	if err != nil {
 		log.Println(err)
 		return err
@@ -126,15 +111,30 @@ func (d Download) download(m string, url *url.URL) error {
 	return nil
 }
 
+var urlFlag string
+var dstDir string
+
+func init() {
+	flag.StringVar(&urlFlag, "url", "", "yandex disk shared file link")
+	flag.StringVar(&dstDir, "dstdir", "/tmp/", "destination directory")
+}
+
 func main() {
-	if YANDEX_OAUTH == "" {
-		fmt.Println("Variable YANDEX_OAUTH is not pressed")
-		return
+	flag.Parse()
+	if urlFlag == "" {
+		flag.Usage()
 	}
+	url, err := url.Parse(urlFlag)
+	if err != nil {
+		log.Println(err)
+	}
+
 	downloader := Download{
-		Destination: "/tmp/",
+		Destination: dstDir,
+		Url:         url,
 	}
-	err := downloader.GetFileFromYandexDisk("test.jpg")
+
+	err = downloader.GetFileFromYandexDisk()
 	if err != nil {
 		log.Println(err)
 	}
