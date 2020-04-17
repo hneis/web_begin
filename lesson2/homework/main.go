@@ -2,9 +2,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -14,17 +12,17 @@ import (
 	"github.com/go-chi/chi"
 )
 
-type Query struct {
-	Search string
-	Sites  []string
-}
+const (
+	COOKIE_KEY = "cookie"
+)
 
 func main() {
 	stopchan := make(chan os.Signal)
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
-		router.Get("/search", SearchHnadler)
+		router.Put("/cookie/{key}/{value}", PutCookieHandler)
+		router.Get("/cookie/{key}", GetCookieHandler)
 	})
 
 	logrus.SetReportCaller(true)
@@ -38,39 +36,30 @@ func main() {
 	<-stopchan
 }
 
-func SearchHnadler(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		fmt.Fprintln(w, err.Error())
-	}
+// PutCookieHandler TODO: NEEDS COMMENT INFO
+func PutCookieHandler(w http.ResponseWriter, r *http.Request) {
+	key := chi.URLParam(r, "key")
+	value := chi.URLParam(r, "value")
 
-	var query Query
-
-	if err := json.Unmarshal(data, &query); err != nil {
-		fmt.Fprintln(w, err.Error())
-	}
-
-	feature := make(chan bool)
-
-	go func() {
-		query.Sites, err = SearchInSites(query.Search, query.Sites)
-		if err != nil {
-			logrus.Error(err)
-			// Добавить ошибку в json?
+	cookie, _ := r.Cookie(key)
+	if cookie == nil {
+		cookie = &http.Cookie{
+			Name: key,
+			Path: "/",
 		}
-
-		feature <- true
-	}()
-
-	<-feature
-
-	buff, err := json.Marshal(query)
-	if err != nil {
-		fmt.Fprintln(w, err.Error())
-		logrus.Error(err)
-		// Добавить ошибку в json?
-		// return если не смогли получить json?
 	}
 
-	w.Write(buff)
+	cookie.Value = value
+	http.SetCookie(w, cookie)
+}
+
+// GetCookieHandler TODO: NEEDS COMMENT INFO
+func GetCookieHandler(w http.ResponseWriter, r *http.Request) {
+	key := chi.URLParam(r, "key")
+	cookie, _ := r.Cookie(key)
+	if cookie != nil {
+		w.Write([]byte(cookie.Value))
+	} else {
+		w.Write([]byte(fmt.Sprintf("Cookie \"%s\" not set", key)))
+	}
 }
