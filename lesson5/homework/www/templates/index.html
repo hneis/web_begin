@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        {{template "Resources"}}
+        {{template "Script"}}
+    </head>
+    <body>
+        <div class="uk-card uk-card-body">
+            <h3 class="uk-card-title">TODO</h3>
+            {{template "Posts" .}}
+            {{template "NewTask" .}}
+        </div>
+    </body>
+</html>
+
+{{ define "Posts" }}
+<div class="uk-card uk-card-body">
+  <ul class="uk-list">
+    {{ range $key, $value := .Posts }}
+    <li>
+        <div class="uk-card uk-card-default">
+            <div class="uk-card-header">
+                <div class="uk-grid-small uk-flex-middle" uk-grid>
+                    <div class="uk-width-auto">
+                        <img class="uk-border-circle" width="40" height="40" src="">
+                    </div>
+                    <div class="uk-width-expand">
+                        <h3 class="uk-card-title uk-margin-remove-bottom">{{ .Title }}</h3>
+                        <p class="uk-text-meta uk-margin-remove-top"><time datetime="2016-04-01T19:00">{{ .Created }}</time></p>
+                    </div>
+                </div>
+            </div>
+            <div class="uk-card-body">
+                <p>{{ .Text }} </p>
+            </div>
+            <div class="uk-card-footer">
+                <a href="/post/{{ .ID }}" class="uk-button uk-button-text">Read more</a>
+            </div>
+        </div>
+    </li>
+    {{ end }}
+  </ul>
+</div>
+{{ end }}
+{{define "Tasks"}}
+<div class="uk-card uk-card-body">
+    {{range .Tasks}}
+        <div class="uk-card uk-card-default uk-card-body" task-id="{{.ID}}">
+            <div>
+                {{if .Completed}}
+                    <input type="checkbox" class="uk-checkbox" checked onclick="updateTask('{{.ID}}')"> 
+                {{else}}
+                    <input type="checkbox" class="uk-checkbox" onclick="updateTask('{{.ID}}')">
+                {{end}}
+                <button class="uk-button uk-button-default" onclick="updateTask('{{.ID}}')">Save</button>
+                <button class="uk-button uk-button-default" onclick="deleteTask('{{.ID}}')">Delete</button>
+            </div>
+            <input type="text" class="uk-input" value="{{.Text}}">
+        </div>
+    {{end}}
+</div>
+{{end}}
+
+{{define "NewTask"}}
+<div class="uk-child-width" uk-grid>
+    <div>
+        <div class="uk-card uk-card-default uk-card-small uk-card-body" task-id="new">
+            <h3 class="uk-card-title">Создать новый пост</h3>
+            <fieldset class="uk-fieldset">
+                <div class="uk-margin">
+                    <input class="uk-input" id="author" type="text" placeholder="Автор">
+                </div>
+                <div class="uk-margin">
+                    <input class="uk-input" type="text" id="title" placeholder="Заголовок">
+                </div>
+                <div class="uk-margin">
+                    <textarea class="uk-textarea" id="text" rows="5" placeholder="Текст поста"></textarea>
+                </div>
+                <button class="uk-button uk-button-default" onclick="createTask()">Создать</button>
+            </fieldset>
+        </div>
+    </div>
+</div>
+
+
+{{end}}
+
+{{define "Resources"}}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.2.0/css/uikit.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.2.0/js/uikit.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.2.0/js/uikit-icons.min.js"></script>
+{{end}}
+
+{{define "Script"}}
+<script>
+    function createTask()  {
+        let cardNew = document.querySelector('div[task-id="new"]')
+        let author = cardNew.querySelector('input[id=author]').value
+        let title = cardNew.querySelector('input[id=title]').value
+        let text = cardNew.querySelector('textarea[id=text]').value
+        fetch(`/api/v1/post`, {
+            method: 'POST',
+            body: JSON.stringify({
+                author,
+                title,
+                text,
+            })
+        }).then(resp => {
+            resp.json().then(data =>{
+                console.log(data)
+                location.reload()
+            })
+        })
+    }
+</script>
+{{end}}
