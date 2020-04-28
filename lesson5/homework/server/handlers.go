@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/hneis/web_begin/lesson5/homework/models"
-	uuid "github.com/satori/go.uuid"
+	"github.com/gofrs/uuid"
+	"github.com/hneis/web_begin/lesson5/homework/blog/models"
+	"github.com/volatiletech/sqlboiler/boil"
+	"github.com/volatiletech/sqlboiler/queries/qm"
 )
 
 // getTemplateHandler - возвращает шаблон
@@ -45,7 +47,7 @@ func (serv *Server) getTemplateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, err := models.GetAllPostItems(serv.db)
+	posts, err := models.Posts(qm.Load(models.PostRels.Author)).All(serv.ctx, serv.db)
 	if err != nil {
 		serv.SendInternalErr(w, err)
 		return
@@ -84,8 +86,8 @@ func (serv *Server) getPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post := models.PostItem{ID: postID}
-	if err := post.Get(serv.db); err != nil {
+	post, err := models.Posts(qm.Load(models.PostRels.Author), models.PostWhere.ID.EQ(postID)).One(serv.ctx, serv.db)
+	if err != nil {
 		serv.SendInternalErr(w, err)
 		return
 	}
@@ -121,8 +123,8 @@ func (serv *Server) getPostEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post := models.PostItem{ID: postID}
-	if err := post.Get(serv.db); err != nil {
+	post, err := models.Posts(qm.Load(models.PostRels.Author), models.PostWhere.ID.EQ(postID)).One(serv.ctx, serv.db)
+	if err != nil {
 		serv.SendInternalErr(w, err)
 		return
 	}
@@ -136,13 +138,44 @@ func (serv *Server) getPostEditHandler(w http.ResponseWriter, r *http.Request) {
 func (serv *Server) postPostHandler(w http.ResponseWriter, r *http.Request) {
 	data, _ := ioutil.ReadAll(r.Body)
 
-	post := models.PostItem{}
-	_ = json.Unmarshal(data, &post)
+	dataPost := struct {
+		Author string
+		Title  string
+		Text   string
+	}{}
+	_ = json.Unmarshal(data, &dataPost)
 
-	post.ID = uuid.NewV4().String()
-	post.Created = time.Now().String()
+	author, err := models.Users(models.UserWhere.Name.EQ(dataPost.Author)).One(serv.ctx, serv.db)
+	_ = err
+	serv.lg.Println(author)
+	insert := false
+	if author == nil {
+		insert = true
+		author = &models.User{
+			ID:   uuid.Must(uuid.NewV4()).String(),
+			Name: dataPost.Author,
+			Hoby: "",
+		}
+		if err := author.Insert(serv.ctx, serv.db, boil.Infer()); err != nil {
+			serv.SendInternalErr(w, err)
+			return
+		}
+	}
 
-	if err := post.Insert(serv.db); err != nil {
+	post := models.Post{
+		ID:      uuid.Must(uuid.NewV4()).String(),
+		Title:   dataPost.Title,
+		Content: dataPost.Text,
+		Created: time.Now().String(),
+	}
+
+	err = post.SetAuthor(serv.ctx, serv.db, insert, author)
+	if err != nil {
+		serv.SendInternalErr(w, err)
+		return
+	}
+
+	if err := post.Insert(serv.ctx, serv.db, boil.Infer()); err != nil {
 		serv.SendInternalErr(w, err)
 		return
 	}
@@ -154,8 +187,11 @@ func (serv *Server) postPostHandler(w http.ResponseWriter, r *http.Request) {
 func (serv *Server) deletePostHandler(w http.ResponseWriter, r *http.Request) {
 	postID := chi.URLParam(r, "id")
 
-	post := models.PostItem{ID: postID}
-	if err := post.Delete(serv.db); err != nil {
+	post, _ := models.FindPost(serv.ctx, serv.db, postID)
+	rowsAff, err := post.Delete(serv.ctx, serv.db)
+	_ = rowsAff
+
+	if err != nil {
 		serv.SendInternalErr(w, err)
 		return
 	}
@@ -167,12 +203,47 @@ func (serv *Server) putPostHandler(w http.ResponseWriter, r *http.Request) {
 	data, _ := ioutil.ReadAll(r.Body)
 
 	serv.lg.Println(data)
-	post := models.PostItem{}
-	_ = json.Unmarshal(data, &post)
-	post.ID = postID
+	dataPost := struct {
+		ID     string
+		Author string
+		Title  string
+		Text   string
+	}{}
+	_ = json.Unmarshal(data, &dataPost)
+
+	author, err := models.Users(models.UserWhere.Name.EQ(dataPost.Author)).One(serv.ctx, serv.db)
+	_ = err
+	serv.lg.Println(author)
+	insert := false
+	if author == nil {
+		insert = true
+		serv.lg.Println("Add new author")
+		author = &models.User{
+			ID:   uuid.Must(uuid.NewV4()).String(),
+			Name: dataPost.Author,
+			Hoby: "",
+		}
+		if err := author.Insert(serv.ctx, serv.db, boil.Infer()); err != nil {
+			serv.SendInternalErr(w, err)
+			return
+		}
+	}
+
+	post := models.Post{
+		ID:      postID,
+		Title:   dataPost.Title,
+		Content: dataPost.Text,
+	}
+
+	err = post.SetAuthor(serv.ctx, serv.db, insert, author)
+	if err != nil {
+		serv.SendInternalErr(w, err)
+		return
+	}
 	serv.lg.Println(post)
 
-	if err := post.Update(serv.db); err != nil {
+	if rowAff, err := post.Update(serv.ctx, serv.db, boil.Infer()); err != nil {
+		_ = rowAff
 		serv.SendInternalErr(w, err)
 		return
 	}

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -17,6 +18,7 @@ type Server struct {
 	templatesDir  string
 	indexTemplate string
 	Page          models.Page
+	ctx           context.Context
 }
 
 func New(lg *logrus.Logger, rootDir string, db *sql.DB) *Server {
@@ -27,6 +29,7 @@ func New(lg *logrus.Logger, rootDir string, db *sql.DB) *Server {
 		templatesDir:  "/templates",
 		indexTemplate: "index.html",
 		Page:          models.Page{},
+		ctx:           context.Background(),
 	}
 }
 

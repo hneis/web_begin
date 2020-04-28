@@ -8,6 +8,7 @@ import (
 
 	"github.com/hneis/web_begin/lesson5/homework/server"
 	"github.com/sirupsen/logrus"
+	"github.com/volatiletech/sqlboiler/boil"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -34,6 +35,7 @@ func main() {
 	defer db.Close()
 	serv := server.New(lg, *flagRootDir, db)
 
+	boil.DebugMode = true
 	go func() {
 		err := serv.Start(*flagServAddr)
 		if err != nil {

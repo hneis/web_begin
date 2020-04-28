@@ -10,16 +10,16 @@
   </head>
   <body>
     <div class="uk-card uk-card-default uk-card-body">
-        <div class="uk-card uk-card-default" post-id="edit">
+        <div class="uk-card uk-card-default" post-id="edit" id="{{ .ID }}">
           <fieldset class="uk-fieldset">
               <div class="uk-margin">
-                  <input class="uk-input" id="author" type="text" placeholder="Автор" value="{{ .Author }}">
+                  <input class="uk-input" id="author" type="text" placeholder="Автор" value="{{ .R.Author.Name }}">
               </div>
               <div class="uk-margin">
                   <input class="uk-input" type="text" id="title" placeholder="Заголовок" value="{{ .Title }}">
               </div>
               <div class="uk-margin">
-                  <textarea class="uk-textarea" id="text" rows="5" placeholder="Текст поста">{{ .Text }}</textarea>
+                  <textarea class="uk-textarea" id="text" rows="5" placeholder="Текст поста">{{ .Content }}</textarea>
               </div>
           </fieldset>
       </div>
@@ -64,6 +64,7 @@ href="https://cdn.jsdelivr.net/npm/uikit@3.4.2/dist/css/uikit.min.css"
         fetch(`/api/v1/post/${id}`, {
             method: 'PUT',
             body: JSON.stringify({
+                id,
                 author,
                 title,
                 text,
