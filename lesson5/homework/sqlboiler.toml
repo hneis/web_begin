@@ -1,0 +1,11 @@
+output   = "blog/models"
+wipe     = true
+no_tests = true
+
+[mysql]
+  dbname  = "blog"
+  host    = "172.22.0.2"
+  port    = 3306
+  user    = "root"
+  pass    = "root"
+  sslmode = "false"
