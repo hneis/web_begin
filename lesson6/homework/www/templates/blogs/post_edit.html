@@ -1,0 +1,80 @@
+{{ define "post" }}
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{{ .Title }}</title>
+    {{ template "Resources" }}
+    {{ template "Script" }}
+  </head>
+  <body>
+    <div class="uk-card uk-card-default uk-card-body">
+        <div class="uk-card uk-card-default" post-id="edit" id="{{ .ID.Hex }}">
+          <fieldset class="uk-fieldset">
+              <div class="uk-margin">
+                  <input class="uk-input" id="author" type="text" placeholder="Автор" value="{{ .Author.Name }}">
+              </div>
+              <div class="uk-margin">
+                  <input class="uk-input" type="text" id="title" placeholder="Заголовок" value="{{ .Title }}">
+              </div>
+              <div class="uk-margin">
+                  <textarea class="uk-textarea" id="text" rows="5" placeholder="Текст поста">{{ .Content }}</textarea>
+              </div>
+          </fieldset>
+      </div>
+      <p uk-margin>
+      <a class="uk-button uk-button-default" href="/">Вернуться</a>
+
+      <button class="uk-button uk-button-default" onclick="updatePost('{{ .ID.Hex }}')">Сохранить</button>
+      <button class="uk-button uk-button-default" onclick="deletePost('{{ .ID.Hex  }}')">Удалить</button>
+      </p>
+    </div>
+  </body>
+</html>
+{{ end }}
+
+{{ define "Resources" }}
+<!-- UIkit CSS -->
+<link
+rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/uikit@3.4.2/dist/css/uikit.min.css"
+/>
+
+<!-- UIkit JS -->
+<script src="https://cdn.jsdelivr.net/npm/uikit@3.4.2/dist/js/uikit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uikit@3.4.2/dist/js/uikit-icons.min.js"></script>
+{{ end }}
+
+
+{{define "Script"}}
+<script>
+    function deletePost(id) {
+        fetch(`/api/v1/post/${id}`, {method: 'DELETE'})
+            .then(resp => {
+                location.href = `/`
+            })
+    }
+
+    function updatePost(id)  {
+        let cardNew = document.querySelector('div[post-id="edit"]')
+        let author = cardNew.querySelector('input[id=author]').value
+        let title = cardNew.querySelector('input[id=title]').value
+        let text = cardNew.querySelector('textarea[id=text]').value
+        fetch(`/api/v1/post/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                id,
+                author,
+                title,
+                text,
+            })
+        }).then(resp => {
+                location.href = `/post/${id}`
+            <!-- resp.json().then(data =>{ -->
+            <!--     location.href = `/post/${id}` -->
+            <!-- }) -->
+        })
+    }
+</script>
+{{end}}
