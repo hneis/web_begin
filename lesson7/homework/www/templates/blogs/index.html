@@ -1,0 +1,60 @@
+{{ define "blog" }}
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{{ .Title }}</title>
+    {{ template "Resources" }}
+  </head>
+  <body>
+    <div class="uk-card uk-card-default uk-card-body">
+      <h3>{{.Title}}</h3>
+      {{ template "Posts" .}}
+    </div>
+  </body>
+</html>
+{{ end }}
+
+{{ define "Resources" }}
+<!-- UIkit CSS -->
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/uikit@3.4.2/dist/css/uikit.min.css"
+/>
+
+<!-- UIkit JS -->
+<script src="https://cdn.jsdelivr.net/npm/uikit@3.4.2/dist/js/uikit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uikit@3.4.2/dist/js/uikit-icons.min.js"></script>
+{{ end }}
+
+{{ define "Posts" }}
+<div class="uk-card uk-card-body">
+  <ul class="uk-list">
+    {{ range $key, $value := .Posts }}
+    <li>
+        <div class="uk-card uk-card-default">
+            <div class="uk-card-header">
+                <div class="uk-grid-small uk-flex-middle" uk-grid>
+                    <div class="uk-width-auto">
+                        <img class="uk-border-circle" width="40" height="40" src="{{ .Author.Avatar }}">
+                    </div>
+                    <div class="uk-width-expand">
+                        <h3 class="uk-card-title uk-margin-remove-bottom">{{ .Title }}</h3>
+                        <p class="uk-text-meta uk-margin-remove-top"><time datetime="2016-04-01T19:00">{{ .Created }}</time></p>
+                    </div>
+                </div>
+            </div>
+            <div class="uk-card-body">
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt.</p>
+            </div>
+            <div class="uk-card-footer">
+                <a href="/blog/post/{{ .Id }}" class="uk-button uk-button-text">Read more</a>
+            </div>
+        </div>
+    </li>
+    {{ end }}
+  </ul>
+</div>
+{{ end }}
+
