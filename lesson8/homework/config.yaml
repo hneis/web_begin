@@ -1,0 +1,11 @@
+# Configure logger
+---
+logger:
+  level: Debug
+  output: serv.log
+  syslog: true
+server:
+  addr: localhost:8880
+  templatesDir: "/templates"
+  indexTemplate: "index.html"
+  rootDir: "./www"
